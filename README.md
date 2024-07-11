@@ -1,46 +1,46 @@
-# Getting Started with Create React App
+# What's this?
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+The `Animated GIF Grid Splitter` project is the web application that takes an animated GIF as input, splits it into a grid of smaller animated GIFs, and displays them in a synchronized manner on an HTML page.
 
-## Available Scripts
+## Requirements
 
-In the project directory, you can run:
+1. GIF Processing:
+   - Implement a function to split an input animated GIF into an N x M grid of smaller animated GIFs.
+   - Ensure each resulting small GIF maintains its animation.
 
-### `npm start`
+2. Web Interface:
+   - Create an HTML page to display the processed GIFs.
+   - Arrange the smaller GIFs in a grid layout matching the original split.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+3. Synchronization:
+   - Ensure all small GIFs are frame-synchronized, playing in unison to recreate the original animation effect.
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+4. Color Preservation:
+   - Maintain the original colors of the GIF throughout the splitting and display process.
 
-### `npm test`
+5. User Input:
+   - Allow users to upload their own animated GIF.
+   - Provide options for users to specify the grid dimensions (N x M).
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+6. Performance:
+   - Optimize the application to handle GIFs of various sizes efficiently.
 
-### `npm run build`
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+The project is a `create-react-app`, which only renders views and handles events
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+# Getting Started
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### Prerequisites
 
-### `npm run eject`
+No Prerequisites
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+## Installation
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### npm install
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+`npm install` should work now.
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+### run webcli
 
-## Learn More
+`npm start` should work now.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
