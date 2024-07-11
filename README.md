@@ -44,3 +44,12 @@ No Prerequisites
 
 `npm start` should work now.
 
+## Brief Explanation
+
+### approach
+
+I have decided to fully implement the processing of GIF files on the frontend using the `wasm-imagemagick` library, rather than creating a backend server.
+
+### challenges
+
+Since this is a small task, I don't anticipate any significant challenges in implementing this assessment
