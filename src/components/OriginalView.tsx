@@ -14,12 +14,12 @@ const OriginalView = () => {
   )
 
   return (
-    <div className="border-2 rounded-md p-2 drop-shadow-md aspect-square flex items-center justify-center">
+    <div className="w-full h-full border-2 rounded-md p-2 drop-shadow-md aspect-square flex items-center justify-center">
       {!originalURL ? (
         <p>No found original GIF</p>
       ) : (
         <img
-          className="aspect-square w-full object-contain"
+          className="aspect-square w-full h-full object-contain"
           src={originalURL}
           alt={originalURL}
         />
