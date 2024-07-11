@@ -1,38 +1,48 @@
 {
-  "name": "interactive-execute-context",
-  "version": "1.0.0",
-  "description": "html page that let the user enter commands and store/show files so they can be reused in later commands. Shows a collection of command examples using different command syntaxes",
-  "main": "dist/index.js",
-  "scripts": {
-    "all": "npm run clean && npm run build && npm run copy",
-    "build": "tsc && npm run bundle",
-    "bundle": "browserify dist/index.js -o static/bundle.js",
-    "copy": "cp -r node_modules/wasm-imagemagick/dist/magick.wasm node_modules/wasm-imagemagick/dist/magick.js src/static/* static",
-    "clean": "rm -rf dist static",
-    "start": "npm run all && npm run watch-all",
-    "server": "http-server static",
-    "watch-all": "concurrently 'npm run watch-build' 'npm run watch-server' ",
-    "watch-build": "onchange -v 'src/**/*' -- npm run build",
-    "watch-server": "onchange -i -k -v 'static/**/*' -- npm run server"
-  },
-  "keywords": [],
-  "author": "sg",
-  "license": "ISC",
+  "name": "split-gif",
+  "version": "0.1.0",
+  "private": true,
   "dependencies": {
-    "imagemagick-browser": "0.0.3",
-    "p-map": "^2.0.0",
-    "react": "^16.6.1",
-    "react-dom": "^16.6.1",
-    "typestyle": "^2.0.1",
-    "wasm-imagemagick": "^1.2.8"
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/jest": "^27.5.2",
+    "@types/node": "^16.18.101",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "antd": "^5.19.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-scripts": "5.0.1",
+    "typescript": "^4.9.5",
+    "wasm-imagemagick": "^1.2.8",
+    "web-vitals": "^2.1.4"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   },
   "devDependencies": {
-    "@types/react": "^16.4.6",
-    "@types/react-dom": "^16.0.6",
-    "browserify": "^16.2.3",
-    "concurrently": "^4.0.1",
-    "http-server": "^0.11.1",
-    "onchange": "^5.1.0",
-    "typescript": "^3.1.6"
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.39",
+    "tailwindcss": "^3.4.4"
   }
 }

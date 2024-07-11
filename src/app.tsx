@@ -1,290 +1,148 @@
-import pMap from 'p-map';
-import * as React from 'react';
-import { style } from 'typestyle';
-import {
-  arrayToCli, asCommand, buildImageSrc, buildInputFile, cliToArray, Command, ExecutionContext, extractInfo,
-  getBuiltInImages, getInputFilesFromHtmlInputElement, MagickFile, isImage, MagickInputFile, readFileAsText
-} from 'wasm-imagemagick';
-import { commandExamples, Example } from './commandExamples';
-import { blobToString } from 'imagemagick-browser';
+import { ChangeEvent, useMemo, useRef, useState } from 'react';
+import './App.css';
+import { buildImageSrc, execute, extractInfo, getInputFilesFromHtmlInputElement } from 'wasm-imagemagick';
+import { Button, Form, InputNumber } from 'antd';
 
-export interface AppProps {
-  context: ExecutionContext
-}
+const App = () => {
 
-export interface AppState {
-  commandString: string
-  commandArray: string
-  jsonError: string
-  files: MagickInputFile[]
-  imgSrcs: string[]
-  outputFileSrcs: string[]
-  outputFiles: MagickFile[]
-  showImagesAndInfo: boolean
-  filesInfo: any[]
-  builtInImagesAdded: boolean
-  stdout: string
-  stderr: string
-  exitCode: number
-  prettyJSON: boolean
-  isImageArray: boolean[]
-}
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [originalGif, setOriginalGif] = useState<File>();
+  const [croppedGif, setCroppedGif] = useState<string[]>();
+  const [generating, setGenerating] = useState<boolean>(false);
 
-export class App extends React.Component<AppProps, AppState> {
+  const [rowCount, setRowCount] = useState(2);
+  const [colCount, setColCount] = useState(2);
 
-  state: AppState = {
-    commandString: 'identify rose:',
-    commandArray: JSON.stringify(cliToArray('identify rose:')),
-    jsonError: '',
-    files: [],
-    imgSrcs: [],
-    outputFileSrcs: [],
-    outputFiles: [],
-    showImagesAndInfo: false,
-    filesInfo: [],
-    builtInImagesAdded: false,
-    stdout: '',
-    stderr: '',
-    exitCode: 0,
-    prettyJSON: false,
-    isImageArray: []
+  const onSelectFile = () => {
+    fileInput.current?.click();
   }
 
-  protected styles = {
-    textarea: style({
-      width: '100%',
-      height: '90px',
-    }),
-    infoTextarea: style({
-      width: '400px',
-      height: '160px',
-    }),
-    imagesList: style({
-      height: '500px',
-      overflowY: 'scroll',
-      textAlign: 'left',
-    }),
-    executionBad: style({
-      backgroundColor: '#ff8888',
-    }),
-    executionGood: style({
-      backgroundColor: '#88ff88',
-    }),
-    h5: style({
-      margin: 0,
-    }),
+  const splitGif = async () => {
+    if (!originalGif) {
+      return;
+    }
+
+    if (!fileInput.current) return;
+    setGenerating(true);
+
+    const fileName = originalGif.name;
+    const inputFiles = await getInputFilesFromHtmlInputElement(fileInput.current);
+
+      try {
+      const info = await extractInfo(
+        inputFiles[0]
+      );
+
+      const width = (info[0].image? info[0].image.geometry.width : 0) / colCount;
+      const height = (info[0].image ? info[0].image.geometry.height : 0) / rowCount;
+      let cmd = ``;
+      for (let i = 0; i < rowCount; i ++) {
+        for (let j = 0; j < colCount; j ++) {
+          const offX = width * j;
+          const offY = height * i;
+          cmd += `convert ${fileName} -crop ${width}x${height}+${offX}+${offY} +repage output_${i}_${j}.gif\n`;
+        }
+      }
+      const result = await execute({
+        inputFiles,
+        commands: cmd
+      });
+      console.log(cmd);
+      let resultFiles: string[] = [];
+      for (const file of result.outputFiles) {
+        const path = await buildImageSrc(file);
+        resultFiles = [...resultFiles, path];
+      }
+      setCroppedGif(resultFiles);
+    } catch (e) {
+
+    } finally {
+      setGenerating(false);
+    }
   }
 
-  render(): React.ReactNode {
-    return (
-      <div>
+  const onFileSelected = async (e: ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) {
+      return;
+    }
+    setOriginalGif(e.target.files[0]);
+  }
 
-        <div>
-          <h4>Images available (#{this.state.files.length}) :</h4>
-          <div>Show images and info: <input type='checkbox' checked={this.state.showImagesAndInfo} onChange={this.showImagesAndInfoChange.bind(this)}></input></div>
+  const onRowChanged = (e: number | null) => {
+    if (e) {
+      setRowCount(e);
+    }
+  }
 
-          <div><label>Add images: <input title='Add images' type='file' onChange={this.addImagesInputChanged.bind(this)}></input></label>  </div>
+  const onColChanged = (e: number | null) => {
+    if (e) {
+      setColCount(e);
+    }
+  }
 
-          <div><button onClick={this.addBuiltInImages.bind(this)} disabled={this.state.builtInImagesAdded}>Add built-in images</button></div>
-
-          <div><button onClick={this.removeAllImages.bind(this)} disabled={this.state.files.length === 0}>Remove all images</button></div>
-
-          <div className={(this.state.showImagesAndInfo || '') && this.styles.imagesList}>
-            <table >
-              {(this.state.showImagesAndInfo || '') &&
-                <thead><tr>
-                  <th>Name</th>
-                  <th>Actions</th>
-                  <th>Image</th>
-                  <th>Info</th>
-                </tr></thead>
+  return (
+    <div className='flex'>
+      <div className='w-1/4 md:1/2 flex flex-col items-center justify-center'>
+        <div className='flex flex-col items-end'>
+          <Form.Item label="Row Count">
+            <InputNumber min={1} max={20} onChange={onRowChanged} defaultValue={rowCount} changeOnWheel/>
+          </Form.Item>
+          <Form.Item label="Column Count">
+            <InputNumber min={1} max={20} onChange={onColChanged} defaultValue={colCount} changeOnWheel />
+          </Form.Item>
+        </div>
+        <Button
+          type="primary"
+          shape="round"
+          size="large"
+          disabled={generating}
+          onClick={onSelectFile}>
+            Pick Gif
+        </Button>
+        <Button
+            className='mt-4'
+          type="primary"
+          shape="round"
+          size="large"
+          onClick={splitGif}
+          loading={generating}
+          disabled={!originalGif || generating}>
+            Split Gif
+          </Button>
+      </div>
+      <div className='w-3/4 md:1/2 grow grid grid-cols-1 md:grid-cols-2 gap-4 p-2'>
+        <div className='border-2 rounded-md p-2 drop-shadow-md aspect-square flex items-center justify-center'>
+          <input
+            accept="image/gif"
+            className='hidden'
+            onChange={onFileSelected}
+            ref={fileInput}
+            type='file' />
+            {
+              !originalGif ? 
+              <p>Original gif shows here</p>
+              :
+              <img
+                className='aspect-square w-full object-contain'
+                src={originalGif ? URL.createObjectURL(originalGif) : ""}
+                alt="Original image"/>
+            }          
+        </div>
+        <div className='border-2 rounded-md p-2 drop-shadow-md aspect-square flex items-center justify-center'>
+          {
+            croppedGif && croppedGif.length > 0 ?
+              <div className='flex flex-wrap'>
+              {
+                  croppedGif.map((s, idx) => {return <div key={`item-${idx}`} className='p-[1px]' style={{width: `${100 / colCount}%`}}><img className='w-full' src={s}/></div>})
               }
-              <tbody>
-                {this.state.files.map((f, i) =>
-                  <tr>
-                    <td>{f.name}</td>
-                    <td>
-                      <button data-image={f.name} onClick={this.removeImage.bind(this)}>remove</button>
-                    </td>
-                    <td>{
-                      this.state.showImagesAndInfo && this.state.isImageArray[i] ?
-                        <img alt={f.name} src={this.state.imgSrcs[i]}></img> :
-                        this.state.showImagesAndInfo ?
-                          <textarea className={this.styles.infoTextarea} value={this.state.imgSrcs[i]}></textarea> : ''
-                    }
-                    </td>
-                    <td>{(this.state.showImagesAndInfo && this.state.isImageArray[i]) ?
-                      <textarea className={this.styles.infoTextarea} value={JSON.stringify(this.state.filesInfo[i][0].image, null, 2)}></textarea> :
-                      this.state.showImagesAndInfo ?
-                        <span>text file</span> :
-                        ''}
-                    </td>
-                  </tr>,
-                )}
-              </tbody>
-            </table>
-          </div>
+              </div>
+              :
+              <p>Result Image shows here</p>
+          }
         </div>
-
-        <div>
-          <h4>Command</h4>
-          <p>Write a command using one supported syntax type:</p>
-          <div>Command (String syntax):
-            <textarea className={this.styles.textarea} onChange={this.commandStringChange.bind(this)} value={this.state.commandString}></textarea>
-          </div>
-          <div>Command (Array syntax):
-            <textarea className={this.styles.textarea} onChange={this.commandArrayChange.bind(this)} value={this.state.commandArray}></textarea>
-            {(this.state.jsonError || '') && <div>Execution error: {this.state.jsonError} <br />See browser console for more information.</div>}
-            <label>Pretty JSON ? <input type='checkbox' onChange={this.prettyJSONChange.bind(this)}></input></label>
-          </div>
-          <div>
-            Or select one example
-            <select disabled={this.state.files.length === 0} onChange={this.selectExampleChange.bind(this)}>
-              {commandExamples.map(t =>
-                <option>{t.name}</option>)}
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <button onClick={this.execute.bind(this)}>Execute</button>
-        </div>
-
-        <div>
-          <p>Output Files (#{this.state.outputFiles.length}) </p>
-          {(this.state.outputFiles.length || '') && <ul>{this.state.outputFiles.map((f, i) =>
-            <li><div>{f.name}</div>
-              {this.state.isImageArray[this.state.files.findIndex(f2 => f2.name === f.name)] ?
-                <img src={this.state.outputFileSrcs[i]}></img> :
-                <textarea className={this.styles.infoTextarea} value={this.state.outputFileSrcs[i]}></textarea>}
-            </li>,
-          )}
-          </ul>}
-        </div>
-        <h5 className={this.styles.h5}><span className={this.state.exitCode ? this.styles.executionBad : this.styles.executionGood}>Exit code: {this.state.exitCode + ''}</span></h5>
-        <h5 className={this.styles.h5}>stdout:</h5>
-        <textarea className={this.styles.textarea} value={this.state.stdout}></textarea>
-        <h5 className={this.styles.h5}>stderr:</h5>
-        <textarea className={this.styles.textarea} value={this.state.stderr}></textarea>
-      </div>)
-  }
-
-  private defaultImage = 'fn.png'
-  async componentDidMount() {
-    if (!this.state.files.find(f => f.name === this.defaultImage)) {
-      await this.addInputFiles([await buildInputFile(this.defaultImage)])
-    }
-  }
-
-  protected async prettyJSONChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const arr = JSON.parse(this.state.commandArray)
-    const prettyJSON = e.target.checked
-    const commandArray = prettyJSON ? JSON.stringify(arr, null, 2) : JSON.stringify(arr)
-    this.setState({ ...this.state, commandArray, prettyJSON })
-  }
-
-  removeImage(e: React.MouseEvent<HTMLButtonElement>) {
-    const name = e.currentTarget.getAttribute('data-image')
-    this.props.context.removeFiles([name])
-    this.state.files = this.state.files.filter(f => f.name !== name)
-    this.setState({ ...this.state, files: this.state.files.filter(f => f.name !== name) })
-  }
-
-  async removeAllImages(e: React.MouseEvent<HTMLButtonElement>) {
-    const all = await this.props.context.getAllFiles()
-    this.props.context.removeFiles(all.map(f => f.name))
-    this.state.builtInImagesAdded = false
-    this.setState({ ...this.state, files: [] })
-  }
-
-  protected commandStringChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    const commandArray = this.state.prettyJSON ? JSON.stringify(cliToArray(e.target.value), null, 2) : JSON.stringify(cliToArray(e.target.value))
-    // TODO: validate
-    this.setState({ ...this.state, commandString: e.target.value, commandArray })
-  }
-
-  protected async addBuiltInImages() {
-    if (!this.state.builtInImagesAdded) {
-      const builtIn = await getBuiltInImages()
-      await this.addInputFiles(builtIn)
-      this.setState({ ...this.state, builtInImagesAdded: true })
-    }
-  }
-
-  protected async execute() {
-    // replace the $$IMAGE_N with the n-image in this.state.files
-    const cmd = (JSON.parse(this.state.commandArray) as string[][])
-      .map(c=>c.map(arg=>arg.startsWith('$$IMAGE_') ? 
-        (this.state.files[parseInt(arg.substring('$$IMAGE_'.length, arg.length), 10)]||{name: 'rose:'}).name : 
-        arg))
-        
-        const result = await this.props.context.execute(cmd)
-        
-        console.log(cmd, result);
-    this.state.outputFiles = result.outputFiles
-    this.state.stderr = result.stderr.join('\n')
-    this.state.stdout = result.stdout.join('\n')
-    this.state.exitCode = result.exitCode
-    await this.updateImages()
-  }
-
-  protected commandArrayChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    const commandArray = e.target.value
-    let jsonError = ''
-    let commandString = this.state.commandString
-    try {
-      commandString = arrayToCli(JSON.parse(e.target.value))
-    } catch (error) {
-      jsonError = error + ''
-    }
-    this.setState({ ...this.state, commandString, commandArray, jsonError })
-  }
-
-  protected async addImagesInputChanged(e: React.ChangeEvent<HTMLInputElement>) {
-    const inputFiles = await getInputFilesFromHtmlInputElement(e.target)
-    this.addInputFiles(inputFiles)
-  }
-
-  protected async addInputFiles(files: MagickInputFile[]) {
-    this.props.context.addFiles(files)
-    await this.updateImages()
-  }
-
-  protected async updateImages() {
-    const files = await this.props.context.getAllFiles()
-    const isImageArray = await pMap(files, isImage)
-    const imgSrcs = this.state.showImagesAndInfo ? await pMap(files, (f, i) => buildFileSrc(f, isImageArray[i])) : this.state.imgSrcs
-    const filesInfo = this.state.showImagesAndInfo ? await pMap(files, (f, i) => isImageArray[i] ? extractInfo(f) : undefined) : this.state.filesInfo
-    const outputFileSrcs = await pMap(this.state.outputFiles, (f, i) => buildFileSrc(f))
-    this.setState({ ...this.state, files, imgSrcs, outputFileSrcs, filesInfo, isImageArray })
-  }
-
-  protected async showImagesAndInfoChange(e: React.ChangeEvent<HTMLInputElement>) {
-    this.state.showImagesAndInfo = e.target.checked
-    await this.updateImages()
-  }
-
-  protected async selectExampleChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const example = commandExamples[e.currentTarget.selectedIndex]
-    const command = await this.commandExampleAsCommand(example)
-    const commandString = typeof example.command === 'string' ? example.command : arrayToCli(command)
-    this.setState({ ...this.state, commandArray: JSON.stringify(command), commandString })
-  }
-
-  protected async commandExampleAsCommand(example: Example): Promise<Command[]> {
-    const c = example.command as any
-    const command = typeof c === 'function' ? await c(this.state.files) : asCommand(c)
-    return command
-  }
-
+      </div>
+    </div>
+  );
 }
 
-
-async function buildFileSrc(file: MagickFile, isImage_?: boolean): Promise<string> {
-  if (typeof isImage_ === 'undefined' ? await isImage(file) : isImage_) {
-    return await buildImageSrc(file, true)
-  }
-  else {
-    return await readFileAsText(file)
-  }
-}
+export default App;
